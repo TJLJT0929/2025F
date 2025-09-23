@@ -1,0 +1,168 @@
+\begin{document}
+
+
+\section{\texorpdfstring{1.1栅格化 \(+\)
+园林分区}{1.1栅格化 + 园林分区}}\label{ux6805ux683cux5316-ux56edux6797ux5206ux533a}
+
+由于用excel数据画图有些湖泊、山体应当闭合而未闭合，所以先进行数据处理。把未闭合的水域闭合，未闭合的山体闭合。非闭合山体用
+\(1000\mathrm{mm}\) 带宽缓冲。
+
+这样可以使得植物、山石、水域都是一个闭合的区域，能够被多边形填充。然后再往每个斑块中填充元素点，每个点代表
+\(10000\mathrm{m}^2\)
+。如果同一景观元素重叠（比如最常见的植被），那么重点的地方每个单位只填充一次，避免重复考虑。
+
+然后用栅格法使得园林分块化：
+
+并计算每个栅格水体、植物和假山的比例。
+
+\section{1.栅格法（Grid-basedrepresentation)}\label{ux6805ux683cux6cd5grid-basedrepresentation}
+
+假设自然元素的坐标集合为
+
+\[
+\mathcal{D} = \{(x_i,y_i,t_i)\}_{i = 1}^N,t_i\in \{水体,植物,假山\}
+\]
+
+我们把园林的平面区域划分为一个 \(G\times G\) 的栅格，每个点
+\((x_{i},y_{i})\) 被映射到一个栅格坐标：
+
+\[
+g_{x}(i) = \left\lfloor \frac{x_{i} - x_{\min}}{x_{\max} - x_{\min}}\cdot (G - 1)\right\rfloor
+\]
+
+\[
+g_{y}(i) = \left\lfloor \frac{y_{i} - y_{\min}}{y_{\max} - y_{\min}}\cdot (G - 1)\right\rfloor
+\]
+
+然后统计每个格子 \((g_{x},g_{y})\) 内，不同类型元素的数量：
+
+\[
+n_{g,t} = \# \{i\mid g_x(i) = g_x,g_y(i) = g_y,t_i = t\}
+\]
+
+并计算比例：
+
+\[
+r_{g,t} = \frac{n_{g,t}}{\sum_{t'}n_{g,t'}}\quad (t\in \{水体,植物,假山\})
+\]
+
+此外，还可以定义栅格中心点坐标：
+
+\[
+(x_{g},y_{g}) = \left(x_{\min} + \left(g_{x} + \frac{1}{2}\right)\frac{x_{\max} - x_{\min}}{G},y_{\min} + \left(g_{y} + \frac{1}{2}\right)\frac{y_{\max} - y_{\min}}{G}\right)
+\]
+
+于是，每个栅格可表示为一个特征向量：
+
+\[
+\mathbf{f}_g = \left(r_{g,\mathcal{N}\{\mathcal{N}\}},r_{g,\mathcal{H}\{\mathcal{H}\}},r_{g,\mathcal{H}\{\mathcal{H}\}},x_g,y_g\right)
+\]
+
+然后再用K- means方法，对栅格进行聚类：
+
+\section{2.K-means聚类}\label{k-meansux805aux7c7b}
+
+K- means的目标是把所有栅格特征 \(\mathbf{f}_g\) 分成 \(k\)
+个簇。其优化目标为：
+
+\[
+\min_{\{C_j\} ,\{\mu_j\}}\sum_{j = 1}^{k}\sum_{\mathbf{f}_g\in C_j}\| \mathbf{f}_g - \mu_j\| ^2
+\]
+
+其中：
+
+\(C_j =\) 第 \(j\) 个簇（cluster） \(\mu_j =\) 第 \(j\)
+个簇的质心（meanvector）
+
+选代过程：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  初始化簇中心 \(\mu_{j}\)\\
+\item
+  分配：每个 \(\mathbf{f}_g\) 分到最近的 \(\mu_{j}\)\\
+\item
+  更新：对每个簇，重新计算质心
+\end{enumerate}
+
+\[
+\mu_{j} = \frac{1}{|C_{j}|}\sum_{\mathbf{f}_{g}\in C_{j}}\mathbf{f}_{g}
+\]
+
+循环直到收敛。
+
+同时，K- means聚类的优化目标其实就是SSE，为每一个聚类数 \(\mathrm{k}\)
+计算一个SSE，当SSE的减小率达到 \(15\%\) 时，即
+
+\[
+r(K) = \frac{SSE(K - 1) - SSE(K)}{SSE(K - 1)}
+\]
+
+则 \(\mathrm{k}\) 为最终选择的聚类数。
+
+这样，也就把每个园林分成了 \(\mathrm{k}\) 个分区。
+
+\section{1.2接下来计算第一问的元素特征}\label{ux63a5ux4e0bux6765ux8ba1ux7b97ux7b2cux4e00ux95eeux7684ux5143ux7d20ux7279ux5f81}
+
+1.2.1对每一个园林，先计算各元素的比例
+
+在每一个分区中，计算：
+
+\section{5.分区比例（加权平均）}\label{ux5206ux533aux6bd4ux4f8bux52a0ux6743ux5e73ux5747}
+
+在分区 \(C_m\) 内，按栅格点数 \(T_{g}\) 加权：
+
+\[
+R_{m,t} = \frac{\sum_{g\in C_m}r_{g,t}T_g}{\sum_{g\in C_m}T_g},\quad t\in \{水体,植物,假山\}
+\]
+
+权重是每个栅格内的元素点数量，避免有些栅格只有少数点，并且某一元
+
+素的比例更大，最终使得最终结果偏差放大。
+
+再以每个分区的栅格数量占比为权重，计算整个园的比例：
+
+\section{6. 全园比例}\label{ux5168ux56edux6bd4ux4f8b}
+
+再按每个分区的栅格数量 \(|C_{m}|\) 加权：
+
+\[
+R_{t} = \frac{\sum_{m = 1}^{K}R_{m,t}|C_{m}|}{\sum_{m = 1}^{K}|C_{m}|},\quad t\in \{\text{水体,植物,假山}\}
+\]
+
+这三个指标代表了园林三种自然要素比例对审美的影响。
+
+\section{1.2.2
+然后计算园林中，各个元素的离散程度}\label{ux7136ux540eux8ba1ux7b97ux56edux6797ux4e2dux5404ux4e2aux5143ux7d20ux7684ux79bbux6563ux7a0bux5ea6}
+
+利用每一个分区的各元素比例，还有计算出的全园各元素的平均比例，利用方差公式：
+
+\[
+s_{t}^{2} = \frac{1}{K - 1}\sum_{m = 1}^{K}\left(R_{m,t} - \mu_{t}\right)^{2}
+\]
+
+衡量不同分区不同景观元素的变化程度。就可以得到\ldots{}
+
+\section{1.2.3
+计算整个园林的元素多样性}\label{ux8ba1ux7b97ux6574ux4e2aux56edux6797ux7684ux5143ux7d20ux591aux6837ux6027}
+
+对于每个分区，先用下式计算整个分区的香农指数：
+
+\[
+H_{m} = -\sum_{t\in \{\text{水体,植物,假山}\}}R_{m,t}\ln R_{m,t}
+\]
+
+指数越大代表每个分区的景观多样性越丰富，反而越单一。
+
+然后再用每个分区的栅格数量占比为权重，用下式衡量整个园区的景观多样性：
+
+\[
+H_{\text{全园}} = \frac{\sum_{m = 1}^{K}w_{m}\cdot H_{m}}{\sum_{m = 1}^{K}w_{m}}
+\]
+
+\section{1.2.4
+还有个主成分分析}\label{ux8fd8ux6709ux4e2aux4e3bux6210ux5206ux5206ux6790}
+
+\end{document}
