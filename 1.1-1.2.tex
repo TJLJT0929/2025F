@@ -1,0 +1,205 @@
+\documentclass[11pt]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+\usepackage{multirow,booktabs}
+\usepackage[table]{xcolor}
+\usepackage{fullpage}
+\usepackage{lastpage}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage{wrapfig}
+\usepackage{setspace}
+\usepackage{calc}
+\usepackage{multicol}
+\usepackage{cancel}
+\usepackage[retainorgcmds]{IEEEtrantools}
+\usepackage[margin=3cm]{geometry}
+\usepackage{amsmath}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\newlength{\tabcont}
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+\usepackage{empheq}
+\usepackage{framed}
+\usepackage[most]{tcolorbox}
+\usepackage{xcolor}
+\colorlet{shadecolor}{orange!15}
+\parindent 0in
+\parskip 12pt
+\geometry{margin=1in, headsep=0.25in}
+\theoremstyle{definition}
+\newtheorem{defn}{定义}
+\newtheorem{reg}{规则}
+\newtheorem{exer}{练习}
+\newtheorem{note}{注释}
+\newtheorem{theorem}{定理}
+\newtheorem{proposition}{命题}
+\newtheorem{lemma}{引理}
+\newtheorem{corollary}{推论}
+
+\begin{document}
+	\setcounter{section}{0}
+	
+	\thispagestyle{empty}
+	
+\begin{center}
+	{\LARGE \bf 华为杯数学建模 F 题}\\
+	当前日期: 2025-09-22
+\end{center}
+
+
+
+\section*{1.1 园林路径网络的图模型构建}	
+
+
+\subsection*{这部分放摘要部分}
+为量化分析古典园林“移步异景”的游赏趣味性，首要任务是将园林复杂的道路网络转化为可供计算分析的数学结构。本文旨在建立一个基于图论的园林路径网络模型。我们首先对原始的离散道路坐标数据进行预处理，通过引入邻域连通性准则，将无序点集重构为有序的路径段集合。随后，通过严格的数学定义，识别出路径的端点与交叉点，将它们抽象为图的顶点。连接这些顶点的连续路径则被定义为图的边，并赋予其几何与拓扑属性。最终，我们将整个园林的通行网络形式化地定义为一个带权无向图 $G=(V, E, W)$。该图模型不仅精确地描述了园林路径的拓扑结构，还量化了各路段的关键特征，为后续的路径特征计算和最优游线规划提供了坚实的数学基础。
+
+
+\subsection*{问题重述与建模思路}
+
+
+本研究的核心目标是建立江南古典园林游赏“趣味性”的量化评价模型。根据问题描述，“移步异景”的体验与游园路径的蜿蜒曲折、空间转换密切相关。因此，对园林路径进行精确的数学刻画是所有后续分析的前提。
+
+原始数据以离散坐标点的形式给出了园林内道路、建筑、水体等景观元素的位置信息。其中，道路数据是一系列无序的二维坐标点集，直接反映了道路边界的采样。为了进行路径分析，我们必须首先将这些离散、无序的数据点转化为一个能够表达路径连通性、长度和拓扑关系的结构化模型。
+
+图论（Graph Theory）是研究点（顶点）与线（边）之间关系的数学分支，是描述网络结构最自然的语言。因此，本章的目标是：
+
+\begin{enumerate}
+	\item \textbf{路径重构}：将离散的道路坐标点集处理成一系列连续、有序的路径段。
+	\item \textbf{图元素定义}：从重构的路径段中，精确识别出关键的节点（如交叉口、端点），并将其抽象为图的顶点（Vertices）。
+	\item  模型构建：将连接顶点的路径抽象为图的边（Edges），并为其赋予权重，最终构建一个能够完整描述整个园林道路网络的带权图（Weighted Graph）。
+\end{enumerate}
+
+\subsection*{数据预处理与路径段重构}
+
+设园林道路的原始坐标测量数据为一个二维点集 $P_{road} = \{p_1, p_2, \dots, p_N\}$, 其中 $p_i = (x_i, y_i) \in \mathbb{R}^2$。这些点在空间上密集分布于道路区域，但其存储顺序是任意的。我们的目标是将其组织成一个或多个有序路径段的集合 $\mathcal{S} = \{S_1, S_2, \dots, S_M\}$。
+
+\textbf{定义 2.1 (路径段)} 一个路径段 $S_j$ 是一个由 $k$ 个点组成的有序序列，记为 $S_j = \langle q_1, q_2, \dots, q_k \rangle$，其中 $q_i \in P_{road}$。
+
+为了从无序点集 $P_{road}$ 中提取出路径段，我们采用一种基于邻域搜索的迭代构建算法。
+
+\textbf{算法 2.1：路径段提取算法}
+\begin{enumerate}
+	\item \textbf{初始化：} 创建一个空的路段集合 $\mathcal{S}$。令待处理点集 $P_{temp} = P_{road}$。
+	\item \textbf{迭代构建：} 当 $P_{temp}$ 不为空时：
+	\begin{enumerate}
+		\item 从 $P_{temp}$ 中任意选择一个起始点 $p_{start}$，初始化新路径段 $S_{new} = \langle p_{start} \rangle$。将 $p_{start}$ 从 $P_{temp}$ 中移除。
+		\item \textbf{向前扩展}：设 $p_{curr}$ 为 $S_{new}$ 的末端点。在 $P_{temp}$ 中寻找与 $p_{curr}$ 距离最近的点 $p_{next}$。计算欧氏距离 $d(p_{curr}, p_{next}) = \|p_{next} - p_{curr}\|_2$。
+		\item 定义一个距离阈值 $\epsilon$（根据数据采样间距，如1.5米，即1500mm）。若 $d(p_{curr}, p_{next}) \le \epsilon$，则将 $p_{next}$ 追加到 $S_{new}$ 的末尾，并从 $P_{temp}$ 中移除 $p_{next}$，返回步骤 2.b。若不满足，则向前扩展终止。
+		\item 向后扩展（处理起始点在路径中间的情况) ：设 $p_{curr}$ 为 $S_{new}$ 的始端点，重复步骤 2.b 和 2.c 进行反向扩展，将找到的点插入到 $S_{new}$ 的前端。
+		\item 将构建完成的路径段 $S_{new}$ 添加到集合 $\mathcal{S}$ 中。
+	\end{enumerate}
+	
+	\item  \textbf{终止}：当 $P_{temp}$ 为空时，算法结束。返回路径段集合 $\mathcal{S}$。
+\end{enumerate}
+
+通过此算法，我们将原始的无序点云数据转化为了一个包含 $M$ 条有序路径段的集合 $\mathcal{S} = \{S_1, S_2, \dots, S_M\}$，为后续的图构建奠定了基础。
+
+
+\subsection*{园林路径网络的图形式化定义}
+
+基于重构的路径段集合 $\mathcal{S}$，我们构建一个带权无向图 $G=(V, E, W)$ 来表示整个园林的路径网络。
+
+\textbf{定义 2.2 (图的顶点 V)} 图的顶点集合 $V$ 由以下三类点构成：
+
+\begin{itemize}
+	\item \textbf{端点 (Endpoints)：}每条路径段 $S_j = \langle q_1, \dots, q_k \rangle$ 的起始点 $q_1$ 和终止点 $q_k$。这些点通常对应于道路的尽头、建筑物的入口等。端点集合记为 $V_{end}$。
+	\item \textbf{交叉点 (Intersection Points)：}两条或多条不同路径段在几何上的交汇点。对于任意两条路径段 $S_i, S_j \in \mathcal{S}$ ($i \ne j$)，若存在点 $p \in \mathbb{R}^2$ 使得 $p$ 同时位于 $S_i$ 和 $S_j$ 上，则 $p$ 是一个交叉点。交叉点集合记为 $V_{int}$。在计算上，这通过检测线段间的相交来实现。
+	\item \textbf{兴趣点 (Points of Interest, POI)}：园林的入口、出口以及其他重要的地标（如主要厅堂、亭台）。这些点是游览路径的关键起点和终点。兴趣点集合记为 $V_{poi}$。
+\end{itemize}
+
+顶点集合 $V$ 是以上三者的并集：
+$$ V = V_{end} \cup V_{int} \cup V_{poi} $$
+为保证集合元素的唯一性，所有顶点在加入 $V$ 时需进行去重处理。
+
+\textbf{定义 2.3 (图的边 E)} 图的边 $e \in E$ 代表了连接两个顶点 $v_a, v_b \in V$ 的一段连续、无分支的路径。一条边 $e(v_a, v_b)$ 由原始路径段 $S_j$ 中位于 $v_a$ 和 $v_b$ 之间的子序列构成。
+
+具体地，如果一条原始路径段 $S_j$ 依次穿过了一系列顶点 $\{v_{j1}, v_{j2}, \dots, v_{jp}\} \subseteq V$，那么这条路径段就被这些顶点分割成了 $p-1$ 条边：$e(v_{j1}, v_{j2}), e(v_{j2}, v_{j3}), \dots, e(v_{j,p-1}, v_{jp})$。
+
+\textbf{定义 2.4 (边的权重 W)}
+为了在模型中包含路径的物理和几何信息，我们为每条边 $e \in E$ 定义一个多维权重向量 $W(e)$。该向量包含以下分量：
+
+\begin{enumerate}
+	\item \textbf{长度 (Length)}：$W_{len}(e)$。边的长度是构成该边的点序列的累积欧氏距离。对于边 $e$ 对应的点序列 $\langle q_1, \dots, q_k \rangle$，其长度为：
+	$$ W_{len}(e) = \sum_{i=1}^{k-1} \|q_{i+1} - q_i\|_2 $$
+	\item 几何序列 (Geometry)：$W_{geom}(e)$。即构成该边的有序坐标点序列 $\langle q_1, \dots, q_k \rangle$。这个序列保留了路径的精确几何形态，是计算曲折度、视野等高级特征的基础。
+	\item  转折点数量 (Turns)：$W_{turns}(e)$。计算边 $e$ 上的显著转折点个数。对于点序列中的每一点 $q_i$ ($1 < i < k$)，计算向量 $\vec{u} = q_i - q_{i-1}$ 和 $\vec{v} = q_{i+1} - q_i$ 之间的夹角 $\theta_i$。当 $\theta_i$ 大于预设的角度阈值 $\theta_{turn}$（例如 15°）时，计为一个转折点。
+	$$ W_{turns}(e) = \left| \{ i \mid \arccos\left(\frac{\vec{u} \cdot \vec{v}}{\|\vec{u}\| \|\vec{v}\|}\right) > \theta_{turn}, 1 < i < k \} \right| $$
+\end{enumerate}
+
+因此，权重函数 $W$ 是一个映射 $W: E \to \mathbb{R} \times (\mathbb{R}^2)^k \times \mathbb{N}$，其中 $k$ 是构成边的点的数量。
+
+通过以上定义，我们将一个古典园林的通行网络严谨地抽象为一个带有多维权重的无向图 $G=(V, E, W)$。此模型不仅捕捉了路径间的拓扑连接关系，还通过边的权重向量，保留了对分析“趣味性”至关重要的几何与物理属性。该图模型是后续所有路径分析、特征计算及游线规划算法的数学基础。
+
+
+
+\section*{1.2 游线特征量化与“趣味性”定义}	
+
+
+在上一节，我们已成功将园林的物理路径网络抽象为一个带权图 $G=(V, E, W)$。在此图模型的基础上，对任意一条具体的游览路径（游线）进行特征分析，并最终构建一个能够量化其“趣味性”的数学模型。我们将首先形式化地定义“游线”，然后提出并量化一系列能够反映“移步异景”和“迷宫式”体验的关键特征，包括路径曲折度、视野变化（异景程度）和探索性。最后，通过对这些特征进行加权组合，我们将给出一个综合性的“趣味性”评分函数。
+
+\textbf{1.2.1 游线的形式化定义}
+
+\textbf{定义 2.5 (游线)}： 一条游线 (Tour Path) $L$ 是图 $G$ 中一条从入口顶点 $v_{start} \in V_{poi}$ 到出口顶点 $v_{end} \in V_{poi}$ 的路径。它由一个顶点的有序序列和一个边的有序序列交替构成，形式化表示为：
+$$ L = \langle v_0, e_1, v_1, e_2, \dots, e_k, v_k \rangle $$
+其中，$v_0 = v_{start}$，$v_k = v_{end}$，对于所有的 $i \in \{1, \dots, k\}$，边 $e_i$ 连接顶点 $v_{i-1}$ 和 $v_i$，即 $e_i = e(v_{i-1}, v_i) \in E$。
+
+\textbf{1.2.2 游线关键特征的数学量化}
+
+对于任意一条给定的游线 $L$，我们定义以下几个关键特征函数来刻画其属性。
+
+\textbf{路径长度 ($L_{len}$)}：路径长度是游客行走的物理总距离，是评价游览成本的基本指标。
+$$ L_{len}(L) = \sum_{i=1}^{k} W_{len}(e_i) $$
+其中 $W_{len}(e_i)$ 是构成游线的每条边 $e_i$ 的长度权重，如定义 2.4 所述。
+
+\textbf{路径曲折度 ($L_{curv}$)}：曲折度反映了路径的蜿蜒程度，是“曲径通幽”美学体验的直接体现。我们将其定义为游线上所有显著转折点的总和。
+$$ L_{curv}(L) = \sum_{i=1}^{k} W_{turns}(e_i) $$
+其中 $W_{turns}(e_i)$ 是边 $e_i$ 上的转折点数量，如定义 2.4 所述。
+
+\textbf{异景程度 ($L_{view}$)}：“异景程度”是衡量“移步异景”的核心指标，它量化了游客在行进过程中视野内景观元素的变化频率与幅度。
+
+\textbf{定义 2.6 (景观元素集 $\mathcal{O}$)}：设园内所有景观元素（如假山、水体、植物、特定建筑等）的几何抽象集合为 $\mathcal{O} = \{O_1, O_2, \dots, O_P\}$。每个元素 $O_j$ 由其坐标数据表征。
+
+\textbf{定义 2.7 (视域 $V(p)$)}：对于游线上的任意一点 $p \in \mathbb{R}^2$，其视域 (Viewshed) $V(p)$ 是一个从 $p$ 点可看见的景观元素的子集，即 $V(p) \subseteq \mathcal{O}$。一个景观元素 $O_j \in \mathcal{O}$ 属于 $V(p)$ 的条件是：连接点 $p$ 与 $O_j$ 的代表点（如质心）的线段 $\overline{p O_j'}$ 不被任何不透明的遮挡物（如实体建筑、山体）所阻断。
+
+计算异景程度:
+\begin{enumerate}
+	\item 路径采样: 对游线 $L$ 进行空间等距采样，得到一个有序采样点序列 $P_L = \langle p_1, p_2, \dots, p_n \rangle$，其中 $p_1$ 为入口点，$p_n$ 为出口点，且任意相邻两点 $\|p_{j+1} - p_j\|_2 = \delta_s$（$\delta_s$ 为采样步长，如 1 米）。该序列可从构成 $L$ 的各条边的几何序列 $W_{geom}(e_i)$ 中插值得到。
+	\item 视野变化量化: 对于序列中每两个连续的采样点 $p_{j-1}$ 和 $p_j$，它们之间的视野变化量 $\Delta V_j$ 定义为两个视域集合的对称差（Symmetric Difference）的大小：
+	$$ \Delta V_j = |V(p_j) \Delta V(p_{j-1})| = |(V(p_j) \setminus V(p_{j-1})) \cup (V(p_{j-1}) \setminus V(p_j))| $$
+	该值表示从 $p_{j-1}$ 移动到 $p_j$ 这一步中，新进入视野和从视野中消失的景观元素的总数量。
+	\item 总异景程度: 整条游线 $L$ 的总异景程度为其路径上所有采样步的视野变化量之和：
+	$$ L_{view}(L) = \sum_{j=2}^{n} \Delta V_j $$
+\end{enumerate}
+
+\textbf{探索性 ($L_{exp}$)}：探索性旨在量化路径的“迷宫式”感觉，即为游客提供选择的丰富程度。我们认为，一条经过了更多高连通度交叉口的路径具有更高的探索性。
+
+\textbf{定义 2.8 (顶点度)}：顶点 $v \in V$ 的度 $\text{deg}(v)$ 是指在图 $G$ 中与该顶点相连的边的数量。
+
+游线 $L = \langle v_0, e_1, v_1, \dots, v_k \rangle$ 的探索性得分定义为其经过的所有内部顶点（非起点和终点）的度数之和：
+$$ L_{exp}(L) = \sum_{i=1}^{k-1} \text{deg}(v_i) $$
+
+\textbf{1.2.3 “趣味性”的综合评价模型}
+
+基于以上量化的特征，我们构建一个综合性的“趣味性”评分函数 $F(L)$。该函数旨在奖励具有高曲折度、高视野变化和高探索性的路径，同时对过长的路径施加一定的惩罚，以体现“在有限空间中创造无限意趣”的园林设计哲学。
+
+我们定义趣味性评分为各特征的加权线性组合：
+
+$$ F(L) = \frac{w_{curv} \cdot L_{curv}(L) + w_{view} \cdot L_{view}(L) + w_{exp} \cdot L_{exp}(L)}{w_{len} \cdot L_{len}(L) + C} $$
+
+其中：
+\begin{itemize}
+	\item $L_{curv}(L)$, $L_{view}(L)$, $L_{exp}(L)$, $L_{len}(L)$ 分别为游线 $L$ 的曲折度、异景程度、探索性和路径长度。
+	\item $w_{curv}, w_{view}, w_{exp}, w_{len}$ 是各项特征对应的非负权重系数。这些系数的取值反映了我们对不同趣味性因素的重视程度。根据问题描述，“移步异景”是核心，因此 $w_{view}$ 应被赋予相对较高的值。
+	\item $C$ 是一个小的正常数，用于防止分母为零，并可以调节路径长度惩罚的敏感度。
+\end{itemize}
+
+该评分函数 $F(L)$ 的值越高，代表游线 $L$ 的综合“趣味性”越强。它将作为我们下一阶段进行最优游线规划的目标函数。通过最大化 $F(L)$，我们能够找到一条既能充分展现园林美学特征，又兼顾游览效率的最佳路径。
+
+
+
+\end{document}
