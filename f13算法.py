@@ -43,14 +43,14 @@ class GardenVisualizationAndRLOptimizer:
             6: '秋霞圃', 7: '沈园', 8: '怡园', 9: '耦园', 10: '绮园'
         }
 
-        # 景观元素配置
+        # 景观元素配置 - 优化视觉效果
         self.element_config = {
-            '道路': {'color': '#D3D3D3', 'size': 3, 'marker': '.', 'alpha': 0.6},
-            '实体建筑': {'color': '#8B4513', 'size': 20, 'marker': 's', 'alpha': 0.8},
-            '半开放建筑': {'color': '#FFA500', 'size': 15, 'marker': '^', 'alpha': 0.7},
-            '假山': {'color': '#696969', 'size': 10, 'marker': 'o', 'alpha': 0.7},
-            '水体': {'color': '#4169E1', 'size': 8, 'marker': 'o', 'alpha': 0.8},
-            '植物': {'color': '#228B22', 'size': 5, 'marker': 'o', 'alpha': 0.6}
+            '道路': {'color': '#555555', 'size': 8, 'marker': '.', 'alpha': 0.8},  # 增加道路点大小和对比度
+            '实体建筑': {'color': '#8B4513', 'size': 12, 'marker': 's', 'alpha': 0.8},  # 减小实体建筑大小
+            '半开放建筑': {'color': '#FFA500', 'size': 10, 'marker': '^', 'alpha': 0.7},  # 减小半开放建筑大小
+            '假山': {'color': '#696969', 'size': 8, 'marker': 'o', 'alpha': 0.7},
+            '水体': {'color': '#4169E1', 'size': 6, 'marker': 'o', 'alpha': 0.8},
+            '植物': {'color': '#228B22', 'size': 4, 'marker': 'o', 'alpha': 0.6}
         }
 
         # RL训练参数
@@ -208,25 +208,47 @@ class GardenVisualizationAndRLOptimizer:
             scatter = ax.scatter(coords_array[:, 0], coords_array[:, 1],
                                c=config['color'], s=config['size'],
                                marker=config['marker'], alpha=config['alpha'],
-                               label=f"{element_type} ({len(coords)}个)")
+                               label=f"{element_type}")  # 只显示元素类型，不显示个数
 
             legend_elements.append(scatter)
             total_elements += len(coords)
 
         # 设置图表属性
-        ax.set_xlabel('X坐标 (毫米)', fontsize=12)
-        ax.set_ylabel('Y坐标 (毫米)', fontsize=12)
+        ax.set_xlabel('X (毫米)', fontsize=12)
+        ax.set_ylabel('Y (毫米)', fontsize=12)
         ax.grid(True, alpha=0.3)
         ax.set_aspect('equal')
 
-        # 添加图例
+        # 优化图例位置 - 根据数据分布自动选择最佳位置
         if legend_elements:
-            ax.legend(loc='upper right', fontsize=10, framealpha=0.9)
+            # 计算数据点的边界
+            all_coords = []
+            for coords in garden_data['elements'].values():
+                if coords:
+                    all_coords.extend(coords)
 
-        # 添加统计信息
-        info_text = f"总景观元素: {total_elements}个\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ax.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=10,
-               verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+            if all_coords:
+                coords_array = np.array(all_coords)
+                x_range = coords_array[:, 0].max() - coords_array[:, 0].min()
+                y_range = coords_array[:, 1].max() - coords_array[:, 1].min()
+
+                # 根据数据分布选择图例位置
+                if x_range > y_range:
+                    # 水平分布较广，图例放在上方或下方
+                    legend_loc = 'upper center'
+                    bbox_to_anchor = (0.5, 1.0)
+                    ncol = min(6, len(legend_elements))  # 最多6列
+                else:
+                    # 垂直分布较广，图例放在侧边
+                    legend_loc = 'center left'
+                    bbox_to_anchor = (1.02, 0.5)
+                    ncol = 1
+
+                ax.legend(loc=legend_loc, bbox_to_anchor=bbox_to_anchor,
+                         fontsize=10, framealpha=0.95, ncol=ncol,
+                         fancybox=True, shadow=True)
+            else:
+                ax.legend(loc='upper right', fontsize=10, framealpha=0.95)
 
         plt.tight_layout()
 
@@ -533,8 +555,8 @@ class GardenVisualizationAndRLOptimizer:
                        c='red', s=100, marker='*',
                        label='终点', zorder=10)
 
-        ax1.set_xlabel('X坐标 (毫米)')
-        ax1.set_ylabel('Y坐标 (毫米)')
+        ax1.set_xlabel('X (毫米)')
+        ax1.set_ylabel('Y (毫米)')
         ax1.grid(True, alpha=0.3)
         ax1.legend(loc='upper right', fontsize=9)
         ax1.set_aspect('equal')
