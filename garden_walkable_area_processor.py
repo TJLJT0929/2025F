@@ -165,9 +165,9 @@ class GardenWalkableAreaProcessor:
         gaps = []
         
         try:
-            # 使用较大的聚类半径来分离不同的建筑
-            # 调整聚类参数，使用更合理的距离
-            clustering = DBSCAN(eps=gap_threshold*0.8, min_samples=2).fit(building_array)
+            # 动态调整聚类参数
+            # 先尝试较小的聚类半径来识别独立建筑
+            clustering = DBSCAN(eps=gap_threshold*0.5, min_samples=2).fit(building_array)
             
             # 识别不同建筑群
             unique_labels = set(clustering.labels_)
@@ -175,6 +175,14 @@ class GardenWalkableAreaProcessor:
                 unique_labels.remove(-1)  # 移除噪声标签
             
             print(f"   DBSCAN聚类结果: {len(unique_labels)} 个建筑群")
+            
+            # 如果聚类结果太少，尝试更小的半径
+            if len(unique_labels) < 2:
+                clustering = DBSCAN(eps=gap_threshold*0.3, min_samples=2).fit(building_array)
+                unique_labels = set(clustering.labels_)
+                if -1 in unique_labels:
+                    unique_labels.remove(-1)
+                print(f"   调整后聚类结果: {len(unique_labels)} 个建筑群")
             
             if len(unique_labels) < 2:
                 return gaps  # 需要至少两个建筑群才能有间隙
